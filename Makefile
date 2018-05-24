@@ -1,8 +1,8 @@
 CC_FLAG = 		-Wno-unused-result -Wno-char-subscripts -Wfatal-errors -Wall -pthread -O2
 
-INCLUDE_LIB =		-I ../htslib
+INCLUDE_LIB =		-I htslib
 
-HTSLIB =		-L ../htslib
+HTSLIB =		-L htslib
 
 OBJ_MAIN =		molecule.o		\
 			duplicate.o		\

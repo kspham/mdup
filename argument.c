@@ -8,22 +8,21 @@ void print_usage()
 	__VERBOSE("\n");
 	__VERBOSE("Version: %s\n", VERSION);
 	__VERBOSE("\n");
-	__VERBOSE("Input bam_file must be sorted by coordinate and be indexed. Only process for primary reads.\n");
+	__VERBOSE("mdup take a BAM file as input, the Bam file must be sorted by coordinate and be indexed.\n");
+	__VERBOSE("Recommend using BWA to align cloud-read to referenece. All alignment record must have\n");
+	__VERBOSE("BX:Z: tag present for barcode.\n");
 	__VERBOSE("\n");
 	__VERBOSE("Option:\n");
 	__VERBOSE("  -t INT                number of threads [1]\n");
 	__VERBOSE("  -o DIR                output directory [\"./mdup_out/\"]\n");
 	__VERBOSE("  -g FILE               reference file that generated bam file (better statictis)\n");
-	__VERBOSE("  -r                    remove unneeded read (read unmapped, supplementary alignment,\n");
-	__VERBOSE("                        not primary aligment, read is mark duplicate, read fail quality checks)\n");
-	__VERBOSE("  -b                    barcode mode (reads must has BX:Z: tag present for barcode)\n");
-	__VERBOSE("  -n                    don't write new bam (get statistic purpose)\n");
+	__VERBOSE("  -k                    keep all record from BAM file, turn on duplicate bit flag instead.\n");
 	__VERBOSE("\n");
-	__VERBOSE("This tool will generate some file:\n");
-	__VERBOSE("  output.bam            bam file after processed\n");
-	__VERBOSE("  summary.inf           summary of bam file\n");
-	__VERBOSE("  plot.html             plot for some metrics\n");
-	__VERBOSE("  molecule.tsv          all molecule info (barcode mode)\n");
+	__VERBOSE("This tool will generate some file in output directory:\n");
+	__VERBOSE("  output.bam            BAM file after processed\n");
+	__VERBOSE("  summary.inf           stats about sequencing and GEM performance\n");
+	__VERBOSE("  plot.html             plot for some metrics of stats\n");
+	__VERBOSE("  molecule.tsv          all molecule detected info\n");
 }
 
 void get_args(int argc, char *argv[])
@@ -31,9 +30,7 @@ void get_args(int argc, char *argv[])
 	int c;
 	args.out_dir = "mdup_out";
 	args.n_thread = 1;
-	args.is_barcode = false;
-	args.is_remove = false;
-	args.is_write = true;
+	args.is_remove = true;
 	args.reference = NULL;
 
 	if (argc < 3) {
@@ -41,7 +38,7 @@ void get_args(int argc, char *argv[])
 		exit(0);
 	}
 
-	while ((c = getopt(argc, argv, "g:rnbht:o:")) >= 0) {
+	while ((c = getopt(argc, argv, "g:kt:o:")) >= 0) {
 		switch (c) {
 		case 't':
 			args.n_thread = atoi(optarg);
@@ -52,14 +49,8 @@ void get_args(int argc, char *argv[])
 		case 'g':
 			args.reference = optarg;
 			break;
-		case 'r':
-			args.is_remove = true;
-			break;
-		case 'b':
-			args.is_barcode = true;
-			break;
-		case 'n':
-			args.is_write = false;
+		case 'k':
+			args.is_remove = false;
 			break;
 		case 'h':
 			print_usage();

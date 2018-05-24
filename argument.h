@@ -8,8 +8,6 @@
 struct prog_args {
 	int n_thread;
 	bool is_remove;
-	bool is_barcode;
-	bool is_write;
 	char *in_bam;
 	char *reference;
 	char *out_dir;

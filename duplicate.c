@@ -76,12 +76,11 @@ void duplicate_process(struct stats_t *stats, samFile *out_bam_f, bam_hdr_t *b_h
 			if (i == pos)
 				continue;
 			align[i].b->core.flag |= FLAG_DUPLICATE;
-			if (args.is_write && !args.is_remove)
+			if (!args.is_remove)
 				sam_write1(out_bam_f, b_hdr, align[i].b);
 		}
 
-		if (args.is_write)
-			sam_write1(out_bam_f, b_hdr, align[pos].b);
+		sam_write1(out_bam_f, b_hdr, align[pos].b);
 		get_coverage(align[pos].b, stats);
 		// mlc_insert(align[u].bx_id, align[u].b, stats);
 		u = v;

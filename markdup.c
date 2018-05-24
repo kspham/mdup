@@ -215,17 +215,15 @@ static void read_bam(struct bam_inf_t *bam_inf)
 	for (i = 0; i < args.n_thread; ++i)
 		pthread_join(pthr[i], NULL);
 
-	if (args.is_write) {
-		for (i = 0; i < bam_inf->b_hdr->n_targets; ++i) {
-			sprintf(file_path, "%s/temp.%s.bam", args.out_dir,
-				bam_inf->b_hdr->target_name[i]);
-			append_file(result_path, file_path);
-			remove(file_path);
-		}
-		sprintf(file_path, "%s/unmapped.bam", args.out_dir);
+	for (i = 0; i < bam_inf->b_hdr->n_targets; ++i) {
+		sprintf(file_path, "%s/temp.%s.bam", args.out_dir,
+			bam_inf->b_hdr->target_name[i]);
 		append_file(result_path, file_path);
 		remove(file_path);
 	}
+	sprintf(file_path, "%s/unmapped.bam", args.out_dir);
+	append_file(result_path, file_path);
+	remove(file_path);
 
 	free(pthr);
 	pthread_attr_destroy(&attr);

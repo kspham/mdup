@@ -37,7 +37,7 @@ void read_bam_unmapped(struct bam_inf_t *bam_inf, struct stats_t *stats)
 			__ERROR("Unmapped read doesn't have not primary flag or suplementary flag!");
 		}
 		get_basic_stats(b, stats);
-		if (args.is_write && !args.is_remove)
+		if (!args.is_remove)
 			sam_write1(out_bam_f, bam_inf->b_hdr, b);
 	}
 
@@ -66,7 +66,7 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 		if (b->core.flag & (FLAG_NOT_PRI | FLAG_SUPPLEMENT)) {
 			duplicate_try_process(b->core.pos, stats,
 					      out_bam_f, bam_inf->b_hdr);
-			if (args.is_write && !args.is_remove)
+			if (!args.is_remove)
 				sam_write1(out_bam_f, bam_inf->b_hdr, b);
 			continue;
 		}
@@ -77,18 +77,16 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 		if (b->core.n_cigar == 0) {
 			duplicate_try_process(b->core.pos, stats,
 					      out_bam_f, bam_inf->b_hdr);
-			if (args.is_write && !args.is_remove)
+			if (!args.is_remove)
 				sam_write1(out_bam_f, bam_inf->b_hdr, b);
 			continue;
 		}
 
-		if (args.is_barcode) {
-			tag_data = bam_aux_get(b, "BX");
-			if (!tag_data)
-				__ERROR("Read doesn't have BX:Z: tag!");
-			bar_s = bam_aux2Z(tag_data);
-			bx_id = khash_bx_get_id(khash_bx, &bx_map_cnt, bar_s);
-		}
+		tag_data = bam_aux_get(b, "BX");
+		if (!tag_data)
+			__ERROR("Read doesn't have BX:Z: tag!");
+		bar_s = bam_aux2Z(tag_data);
+		bx_id = khash_bx_get_id(khash_bx, &bx_map_cnt, bar_s);
 
 		duplicate_insert(b, bx_id, stats, out_bam_f, bam_inf->b_hdr);
 	}

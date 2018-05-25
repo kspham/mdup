@@ -4,7 +4,7 @@ struct prog_args args;
 
 void print_usage()
 {
-	__VERBOSE("./mdup <option> reference_file in_bam_file\n");
+	__VERBOSE("./mdup <option> in_bam_file\n");
 	__VERBOSE("\n");
 	__VERBOSE("Version: %s\n", VERSION);
 	__VERBOSE("\n");

@@ -13,7 +13,7 @@ void print_usage()
 	__VERBOSE("BX:Z: tag present for barcode.\n");
 	__VERBOSE("\n");
 	__VERBOSE("Option:\n");
-	__VERBOSE("  -t INT                number of threads [1]\n");
+	__VERBOSE("  -t INT                number of threads [4]\n");
 	__VERBOSE("  -o DIR                output directory [\"./mdup_out/\"]\n");
 	__VERBOSE("  -g FILE               reference file that generated bam file (better statictis)\n");
 	__VERBOSE("  -k                    keep all record from BAM file, turn on duplicate bit flag instead.\n");
@@ -29,7 +29,7 @@ void get_args(int argc, char *argv[])
 {
 	int c;
 	args.out_dir = "mdup_out";
-	args.n_thread = 1;
+	args.n_thread = 4;
 	args.is_remove = true;
 	args.reference = NULL;
 

@@ -28,12 +28,6 @@ void mlc_destroy(int n_target, char **target_name)
 		}
 		free(mlc[i]);
 	}
-	char file_path[BUFSZ];
-	for (i = 0; i < n_target; ++i) {
-		sprintf(file_path, "%s/%s.mlc.temp.tsv", args.out_dir, target_name[i]);
-		if (remove(file_path) == -1)
-			__PERROR("Could not remove temp file");
-	}
 	__FREE_AND_NULL(mlc);
 	__FREE_AND_NULL(n_mlc);
 }
@@ -45,7 +39,7 @@ static void mlc_out(int id, struct mlc_t *memb, char *bar_s, int start, int end)
 		start, end, end - start, bar_s, memb->sz);
 	for (i = 0; i < memb->sz; ++i) {
 		fprintf(fi[id], "%d", memb->pos[i]);
-		fprintf(fi[id], i == memb->sz - 1 ? "\n" : "\t");
+		fprintf(fi[id], i == memb->sz - 1 ? "\n" : ",");
 	}
 }
 

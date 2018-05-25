@@ -4,6 +4,8 @@
 #include "argument.h"
 #include "bam.h"
 #include "duplicate.h"
+#include "molecule.h"
+#include "khash_bx.h"
 
 static int n_done;
 static double prev_time;
@@ -27,85 +29,129 @@ static int get_median_isize(struct stats_t *stats)
 	return N_ISIZE;
 }
 
-// void output_mlc()
-// {
-// 	total_gem_detected = 0;
-// 	int64_t total_dna_20kb = 0, total_dna_100kb = 0;
-// 	int64_t total_mlc_len = 0, total_mlc_cnt = 0, n_mlc = 0;
-// 	struct arr_pair_t mlc = (struct arr_pair_t){.val = NULL, .sz = 0};
-// 	int64_t mlc_plot[N_MLC];
-// 	memset(mlc_plot, 0, N_MLC * sizeof(int64_t));
+static int cmpfunc_int(const void *a, const void *b)
+{
+	return *(int *)a - *(int *)b;
+}
 
-// 	fprintf(fi_
-// 	fprintf(fi_mlc, "#chr\tstart\tend\tbarcode\tread_count\n");
+static void extract_mlc_record(char *str, int *len, int *n_read, char **bar_s)
+{
+	int u = 0, v = 0;
+	while (str[u] != '\t')
+		++u;
+	++u;
+	while (str[u] != '\t')
+		++u;
+	++u;
+	v = u;
+	while (str[v] != '\t')
+		++v;
+	str[v] = '\0';
+	*len = atoi(str + u);
+	str[v] = '\t';
+	u = ++v;
+	v = u;
+	while (str[v] != '\t')
+		++v;
+	str[v] = '\0';
+	*bar_s = str + u;
+	u = ++v;
+	v = u;
+	while (str[v] != '\t')
+		++v;
+	str[v] = '\0';
+	*n_read = atoi(str + u);
+	str[v] = '\t';
+}
+static void output_mlc(int n_target, char **target_name)
+{
+	char file_path[BUFSZ];
+	sprintf(file_path, "%s/molecule.tsv", args.out_dir);
+	FILE *fi_mlc = fopen(file_path, "w"), *fi_temp;
+	if (!fi_mlc)
+		__PERROR("Could not open file molecule.tsv");
 
-// 	for (i = 0; i < stats->n_gem; ++i) {
-// 		if (!genome_st.gem[i].sz) {
-// 			free(genome_st.gem[i].barcode);
-// 			continue;
-// 		}
-// 		++total_gem_detected;
-// 		n_mlc += genome_st.gem[i].sz;
+	int bx_map_cnt = 0, mlc_cnt_sz = 0, *mlc_cnt = NULL;
+	khash_t(KHASH_STR) *khash_bx = kh_init(KHASH_STR);
+	int64_t total_gem_detected = 0, total_dna_20kb = 0, total_dna_100kb = 0;
+	int64_t total_mlc_detected = 0, total_mlc_len = 0, total_mlc_cnt = 0;
+	char *str = NULL;
+	size_t len = 0;
+	int mlc_plot[N_MLC + 1], i;
+	memset(mlc_plot, 0, N_MLC * sizeof(int));
 
-// 		for (j = 0; j < genome_st.gem[i].sz; ++j) {
-// 			struct mole_t *cur_mlc = genome_st.gem[i].mlc + j;
-// 			int len = cur_mlc->len;
-// 			int cnt = cur_mlc->cnt;
-// 			int start = cur_mlc->start;
-// 			int end = cur_mlc->end;
-// 			int chr_id = cur_mlc->chr_id;
-// 			char *barcode = genome_st.gem[i].barcode;
-// 			fprintf(fi_mlc, "%s\t%d\t%d\t%s\t%d\n",
-// 				bam_inf->b_hdr->target_name[chr_id],
-// 				start, end, barcode, cnt);
-// 			if (len >= MLC_20KB)
-// 				total_dna_20kb += len;
-// 			if (len >= MLC_100KB)
-// 				total_dna_100kb += len;
-// 			total_mlc_len += len;
-// 			total_mlc_cnt += cnt;
-// 			++mlc.sz;
-// 			if ((mlc.sz & (mlc.sz - 1)) == 0)
-// 				mlc.val = realloc(mlc.val, (mlc.sz << 1) *
-// 						  sizeof(uint64_t));
-// 			mlc.val[mlc.sz - 1] = (struct pair_t){.first = cnt, .second = len};
+	for (i = 0; i < n_target; ++i) {
+		sprintf(file_path, "%s/temp.%s.mlc.tsv", args.out_dir, target_name[i]);
+		fi_temp = fopen(file_path, "r");
+		assert(fi_temp);
+		while (xgetline(&str, &len, fi_temp) != EOF) {
+			int len, n_read, prev_val;
+			char *bar_s;
+			extract_mlc_record(str, &len, &n_read, &bar_s);
+			++total_mlc_detected;
+			total_mlc_cnt += n_read;
+			total_mlc_len += len;
+			if (len >= MLC_20KB)
+				total_dna_20kb += len;
+			if (len >= MLC_100KB)
+				total_dna_100kb += len;
+			if (len / MLC_BIN_PLOT < N_MLC)
+				mlc_plot[len / MLC_BIN_PLOT]++;
+			else
+				mlc_plot[N_MLC]++;
+			prev_val = bx_map_cnt;
+			khash_bx_get_id(khash_bx, &bx_map_cnt, bar_s);
+			bar_s[strlen(bar_s)] = '\t';
+			if (bx_map_cnt > prev_val)
+				++total_gem_detected;
+			++mlc_cnt_sz;
+			if ((mlc_cnt_sz & (mlc_cnt_sz - 1)) == 0)
+				__REALLOC(mlc_cnt, mlc_cnt_sz << 1);
+			mlc_cnt[mlc_cnt_sz - 1] = n_read;
+			fprintf(fi_mlc, "%s\t%s\n", target_name[i], str);
+		}
+		fclose(fi_temp);
+		if (remove(file_path) == -1)
+			__PERROR("Could not remove temp file");
+	}
 
-// 			int bin_id = len / MLC_BIN_PLOT;
-// 			if (bin_id < N_MLC)
-// 				mlc_plot[bin_id] += len;
-// 		}
-
-// 		free(genome_st.gem[i].barcode);
-// 	}
-
-// 	qsort(mlc.val, mlc.sz, sizeof(uint64_t), cmpfunc_mlc);
-// 	int64_t sum = 0;
-// 	int n50_read_per_mlc = -1;
-// 	for (i = sum = 0; i < mlc.sz; ++i) {
-// 		int cnt = mlc.val[i].first;
-// 		sum += cnt;
-// 		if (sum >= (total_mlc_cnt >> 1)) {
-// 			n50_read_per_mlc = cnt;
-// 			break;
-// 		}
-// 	}
-// 	assert(n50_read_per_mlc != -1);
+	qsort(mlc_cnt, mlc_cnt_sz, sizeof(int), cmpfunc_int);
+	int64_t sum1 = 0, sum2 = 0;
+	int n50_read_per_mlc = -1;
+	for (i = 0; i < mlc_cnt_sz; ++i)
+		sum1 += mlc_cnt[i];
+	for (i = 0; i < mlc_cnt_sz; ++i) {
+		sum2 += mlc_cnt[i];
+		if (sum2 >= (sum1 >> 1)) {
+			n50_read_per_mlc = mlc_cnt[i];
+			break;
+		}
+	}
+	assert(n50_read_per_mlc != -1);
 
 	/* output barcode summary */
-	// fprintf(fi_sum, "******** Sequencing summary ********\n");
-	// fprintf(fi_sum, "GEMs Detected:\t%d\n", total_gem_detected);
-	// fprintf(fi_sum, "Mean DNA per GEM:\t%ld\n",
-	// 	total_mlc_len / total_gem_detected);
-	// fprintf(fi_sum, "DNA in Molecules >20kb:\t%.1f%%\n",
-	// 	1.0 * total_dna_20kb / total_mlc_len * 100);
-	// fprintf(fi_sum, "DNA in Molecules >100kb:\t%.1f%%\n",
-	// 	1.0 * total_dna_100kb / total_mlc_len * 100);
-	// fprintf(fi_sum, "Mean Molecule Length:\t%ld\n",
-	// 	total_mlc_len / mlc.sz);
-	// fprintf(fi_sum, "Mean Molecule per GEM:\t%ld\n",
-	// 	n_mlc / total_gem_detected);
-	// fprintf(fi_sum, "N50 Reads per Molecule (LPM):\t%d\n", n50_read_per_mlc);
-// }
+	sprintf(file_path, "%s/summary.inf", args.out_dir);
+	FILE *fi_sum = fopen(file_path, "a");
+	fprintf(fi_sum, "\n");
+	fprintf(fi_sum, "******** GEM performance ********\n");
+	fprintf(fi_sum, "GEMs Detected:\t%ld\n", total_gem_detected);
+	fprintf(fi_sum, "Mean DNA per GEM:\t%ld\n", total_mlc_len / total_gem_detected);
+	fprintf(fi_sum, "DNA in Molecules >20kb:\t%.1f%%\n",
+		1.0 * total_dna_20kb / total_mlc_len * 100);
+	fprintf(fi_sum, "DNA in Molecules >100kb:\t%.1f%%\n",
+		1.0 * total_dna_100kb / total_mlc_len * 100);
+	fprintf(fi_sum, "Mean Molecule Length:\t%ld\n",
+		total_mlc_len / total_mlc_detected);
+	fprintf(fi_sum, "Mean Molecule per GEM:\t%0.1f\n",
+		1.0 * total_mlc_detected / total_gem_detected);
+	fprintf(fi_sum, "N50 Reads per Molecule (LPM):\t%d\n", n50_read_per_mlc);
+
+	free(str);
+	free(mlc_cnt);
+	khash_bx_destroy(khash_bx);
+	fclose(fi_sum);
+	fclose(fi_mlc);
+}
 
 static void output_result(struct stats_t *stats, char **target_name)
 {
@@ -219,7 +265,8 @@ static void read_bam(struct bam_inf_t *bam_inf)
 		sprintf(file_path, "%s/temp.%s.bam", args.out_dir,
 			bam_inf->b_hdr->target_name[i]);
 		append_file(result_path, file_path);
-		remove(file_path);
+		if (remove(file_path) == -1)
+			__PERROR("Could not remove temp file");
 	}
 	sprintf(file_path, "%s/unmapped.bam", args.out_dir);
 	append_file(result_path, file_path);
@@ -288,14 +335,18 @@ int main(int argc, char *argv[])
 
 	duplicate_init(bam_inf.b_hdr->n_targets);
 	coverage_init(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_len);
-	// mlc_init(bam_inf.b_hdr->n_targets, args.distance_thres);
+	mlc_init(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
 
 	read_bam(&bam_inf);
 
 	__VERBOSE("Output result ... \n");
 	output_result(&all_stats, bam_inf.b_hdr->target_name);
+	output_mlc(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
 
+	bam_hdr_destroy(bam_inf.b_hdr);
+	free(bam_inf.bam_i);
 	coverage_destroy(bam_inf.b_hdr->n_targets);
+	mlc_destroy(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
 	duplicate_destroy();
 	pthread_mutex_destroy(&lock_id);
 	pthread_mutex_destroy(&lock_merge);

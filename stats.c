@@ -48,7 +48,7 @@ void collect_coverage(struct stats_t *stats, int len)
 	int i;
 	for (i = 0; i < len; ++i) {
 		cur_cover[stats->id] += cell[stats->id][i];
-		assert (i + offset[stats->id] < target_len[stats->id]);
+		assert(i + offset[stats->id] < target_len[stats->id]);
 		assert(cur_cover[stats->id] >= 0);
 		if (cur_cover[stats->id] < N_COVER)
 			++stats->cover[cur_cover[stats->id]];

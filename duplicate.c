@@ -1,5 +1,6 @@
 #include "duplicate.h"
 #include "argument.h"
+#include "molecule.h"
 
 static struct duplst_t *duplicate;
 
@@ -55,6 +56,8 @@ void duplicate_process(struct stats_t *stats, samFile *out_bam_f, bam_hdr_t *b_h
 	struct align_t *align = duplicate[stats->id].align;
 	int n_align = duplicate[stats->id].n_align;
 
+	if (align == NULL)
+		return;
 	qsort(align, n_align, sizeof(struct align_t), cmpfunc_alg);
 
 	while (u < n_align) {
@@ -82,7 +85,7 @@ void duplicate_process(struct stats_t *stats, samFile *out_bam_f, bam_hdr_t *b_h
 
 		sam_write1(out_bam_f, b_hdr, align[pos].b);
 		get_coverage(align[pos].b, stats);
-		// mlc_insert(align[u].bx_id, align[u].b, stats);
+		mlc_insert(align[pos].bx_id, align[pos].b, stats);
 		u = v;
 	}
 
@@ -92,6 +95,7 @@ void duplicate_process(struct stats_t *stats, samFile *out_bam_f, bam_hdr_t *b_h
 		free(align[i].cigar);
 	}
 	duplicate[stats->id].n_align = 0;
+	__FREE_AND_NULL(duplicate[stats->id].align);
 }
 
 static char *convert_scigar(uint32_t *bcigar, int sz)
@@ -117,7 +121,7 @@ static char *convert_scigar(uint32_t *bcigar, int sz)
 void duplicate_try_process(int pos, struct stats_t *stats,
 			   samFile *out_bam_f, bam_hdr_t *b_hdr)
 {
-	struct align_t *align =duplicate[stats->id].align;
+	struct align_t *align = duplicate[stats->id].align;
 	int n_align = duplicate[stats->id].n_align;
 
 	if (n_align > 0 && pos != align[0].b->core.pos)

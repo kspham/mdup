@@ -23,7 +23,7 @@ void bam_inf_init(struct bam_inf_t *bam_inf, const char *file_path)
 
 void read_bam_unmapped(struct bam_inf_t *bam_inf, struct stats_t *stats)
 {
-	samFile *bam_f = sam_open(bam_inf->bam_path, "rb");
+	samFile *in_bam_f = sam_open(bam_inf->bam_path, "rb");
 	hts_itr_t *iter = sam_itr_queryi(bam_inf->bam_i, HTS_IDX_NOCOOR, 0, 0);
 	bam1_t *b = bam_init1();
 	char file_path[BUFSZ];
@@ -31,7 +31,7 @@ void read_bam_unmapped(struct bam_inf_t *bam_inf, struct stats_t *stats)
 	samFile *out_bam_f = sam_open(file_path, "wb");
 
 	/* all bam record here is unmapped */
-	while (sam_itr_next(bam_f, iter, b) >= 0) {
+	while (sam_itr_next(in_bam_f, iter, b) >= 0) {
 		if ((b->core.flag & (FLAG_NOT_PRI | FLAG_SUPPLEMENT)) != 0) {
 			__VERBOSE("\n");
 			__ERROR("Unmapped read doesn't have not primary flag or suplementary flag!");
@@ -41,6 +41,9 @@ void read_bam_unmapped(struct bam_inf_t *bam_inf, struct stats_t *stats)
 			sam_write1(out_bam_f, bam_inf->b_hdr, b);
 	}
 
+	bam_destroy1(b);
+	sam_itr_destroy(iter);
+	sam_close(in_bam_f);
 	sam_close(out_bam_f);
 }
 
@@ -93,8 +96,10 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 
 	duplicate_process(stats, out_bam_f, bam_inf->b_hdr);
 	cal_rest_coverage(stats);
-	// mlc_get_last(stats);
+	mlc_get_last(stats);
 	khash_bx_destroy(khash_bx);
+	sam_itr_destroy(iter);
+	bam_destroy1(b);
 	sam_close(in_bam_f);
 	sam_close(out_bam_f);
 }

@@ -1,2 +1,4 @@
 mdup
 *.o
+mdup_out/
+NA12878*

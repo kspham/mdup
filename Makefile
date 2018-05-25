@@ -10,6 +10,7 @@ OBJ_MAIN =		molecule.o		\
 			khash_bx.o		\
 			utils.o			\
 			bam.o			\
+			plot.o			\
 			argument.o
 
 all:
@@ -19,6 +20,7 @@ all:
 	gcc $(CC_FLAG) $(INCLUDE_LIB) $(HTSLIB) -c -o duplicate.o duplicate.c
 	gcc $(CC_FLAG) $(INCLUDE_LIB) $(HTSLIB) -c -o stats.o stats.c
 	gcc $(CC_FLAG) $(INCLUDE_LIB) $(HTSLIB) -c -o argument.o argument.c
+	gcc $(CC_FLAG) $(INCLUDE_LIB) $(HTSLIB) -c -o plot.o plot.c
 	gcc $(CC_FLAG) $(INCLUDE_LIB) $(HTSLIB) -c -o bam.o bam.c
 	gcc $(CC_FLAG) $(INCLUDE_LIB) $(HTSLIB) $(OBJ_MAIN) markdup.c htslib/lib/libhts.a -o mdup -lz
 	rm -rf *.o

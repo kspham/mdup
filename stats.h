@@ -4,7 +4,7 @@
 #include "attr.h"
 
 /* stats attribute */
-#define N_COVER			200
+#define N_COVER			80
 #define N_ISIZE 		1000
 #define N_MLC			100
 

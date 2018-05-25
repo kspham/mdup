@@ -6,6 +6,7 @@
 #include "duplicate.h"
 #include "molecule.h"
 #include "khash_bx.h"
+#include "plot.h"
 
 static int n_done;
 static double prev_time;
@@ -146,6 +147,8 @@ static void output_mlc(int n_target, char **target_name)
 		1.0 * total_mlc_detected / total_gem_detected);
 	fprintf(fi_sum, "N50 Reads per Molecule (LPM):\t%d\n", n50_read_per_mlc);
 
+	plot_mlc_len(mlc_plot);
+
 	free(str);
 	free(mlc_cnt);
 	khash_bx_destroy(khash_bx);
@@ -202,6 +205,8 @@ static void output_result(struct stats_t *stats, char **target_name)
 	fprintf(fi_sum, "Mean Depth:\t%.1fX\n",
 		1.0 * (stats->sum_len1 + stats->sum_len2) / (sum_nt4 + sum_amb));
 	fprintf(fi_sum, "\n");
+
+	plot_coverage(stats->cover);
 
 	fclose(fi_sum);
 }
@@ -340,9 +345,13 @@ int main(int argc, char *argv[])
 	read_bam(&bam_inf);
 
 	__VERBOSE("Output result ... \n");
+	char file_path[BUFSZ];
+	sprintf(file_path, "%s/plot.html", args.out_dir);
+	plot_init(file_path);
 	output_result(&all_stats, bam_inf.b_hdr->target_name);
 	output_mlc(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
 
+	plot_destroy();
 	bam_hdr_destroy(bam_inf.b_hdr);
 	free(bam_inf.bam_i);
 	coverage_destroy(bam_inf.b_hdr->n_targets);

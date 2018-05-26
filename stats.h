@@ -26,15 +26,15 @@ struct stats_t {
 	int64_t cover[N_COVER + 1];	/* coverage histogram (remove duplicate) */
 };
 
-void coverage_init(int n_target, uint32_t *_target_len);
+void coverage_init(int n_chr);
 
-void coverage_destroy(int n_target);
+void coverage_init_target(int id, int target_len);
 
-void get_coverage(bam1_t *b, struct stats_t *stats);
+void coverage_destroy();
 
-void cal_rest_coverage(struct stats_t *stats);
+void coverage_get(struct stats_t *stats, int target_len);
 
-void collect_coverage(struct stats_t *stats, int len);
+void coverage_add(bam1_t *b, struct stats_t *stats);
 
 void get_basic_stats(bam1_t *b, struct stats_t *stats);
 

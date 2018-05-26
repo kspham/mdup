@@ -59,6 +59,7 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 	sprintf(file_path, "%s/temp.%s.bam", args.out_dir,
 		bam_inf->b_hdr->target_name[id]);
 	samFile *out_bam_f = sam_open(file_path, "wb");
+	coverage_init_target(id, bam_inf->b_hdr->target_len[id]);
 
 	while (sam_itr_next(in_bam_f, iter, b) >= 0) {
 		uint8_t *tag_data;
@@ -95,7 +96,7 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 	}
 
 	duplicate_process(stats, out_bam_f, bam_inf->b_hdr);
-	cal_rest_coverage(stats);
+	coverage_get(stats, bam_inf->b_hdr->target_len[id]);
 	mlc_get_last(stats);
 	khash_bx_destroy(khash_bx);
 	sam_itr_destroy(iter);

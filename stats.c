@@ -1,98 +1,35 @@
 #include "stats.h"
 
 static int **cell;
-static int *offset;
-static int *cur_cover;
-static int *target_len;
 
-void coverage_init(int n_target, uint32_t *_target_len)
+void coverage_init(int n_chr)
 {
-	int i;
-	__CALLOC(cell, n_target);
-	__CALLOC(offset, n_target);
-	__CALLOC(cur_cover, n_target);
-	__CALLOC(target_len, n_target);
-	memcpy(target_len, _target_len, n_target * sizeof(int));
-	for (i = 0; i < n_target; ++i)
-		__CALLOC(cell[i], MBSZ * 2);
+	__CALLOC(cell, n_chr);
 }
 
-void coverage_destroy(int n_target)
+void coverage_init_target(int id, int target_len)
 {
-	int i;
-	for (i = 0; i < n_target; ++i)
-		free(cell[i]);
+	__CALLOC(cell[id], target_len);
+}
+
+void coverage_destroy()
+{
 	__FREE_AND_NULL(cell);
 }
 
-void cal_rest_coverage(struct stats_t *stats)
+void coverage_add(bam1_t *b, struct stats_t *stats)
 {
-	int i;
-	for (i = 0; ; ++i) {
-		if (i < 2 * MBSZ)
-			cur_cover[stats->id] += cell[stats->id][i];
-		else
-			assert(cur_cover[stats->id] == 0);
-		if (i + offset[stats->id] == target_len[stats->id])
-			break;
-		assert(cur_cover[stats->id] >= 0);
-		if (cur_cover[stats->id] < N_COVER)
-			++stats->cover[cur_cover[stats->id]];
-		else
-			++stats->cover[N_COVER];
-	}
-}
-
-void collect_coverage(struct stats_t *stats, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i) {
-		cur_cover[stats->id] += cell[stats->id][i];
-		assert(i + offset[stats->id] < target_len[stats->id]);
-		assert(cur_cover[stats->id] >= 0);
-		if (cur_cover[stats->id] < N_COVER)
-			++stats->cover[cur_cover[stats->id]];
-		else
-			++stats->cover[N_COVER];
-	}
-}
-
-void get_coverage(bam1_t *b, struct stats_t *stats)
-{
-	int pos, i, isize, sum;
+	int pos, i, isize;
 	uint32_t *cigar;
 
 	isize = __abs(b->core.isize) < N_ISIZE ? __abs(b->core.isize) : N_ISIZE;
 	++stats->isize[isize];
-	pos = b->core.pos - offset[stats->id];
+	pos = b->core.pos;
 	cigar = bam_get_cigar(b);
 
-	if (pos >= 2 * MBSZ) {
-		collect_coverage(stats, 2 * MBSZ);
-		memset(cell[stats->id], 0, 2 * MBSZ * sizeof(int));
-		pos -= 2 * MBSZ;
-		offset[stats->id] += 2 * MBSZ;
-		while (pos >= MBSZ) {
-			pos -= MBSZ;
-			offset[stats->id] += MBSZ;
-			stats->cover[0] += MBSZ;
-		}
-	}
-
-	for (i = sum = 0; i < b->core.n_cigar; ++i) {
+	for (i = 0; i < b->core.n_cigar; ++i) {
 		int oplen = bam_cigar_oplen(cigar[i]);
 		char opchr = bam_cigar_opchr(cigar[i]);
-		sum += oplen;
-		if (sum >= MBSZ)
-			__ERROR("Total cigar length over 1 milion!");
-		if (pos + oplen >= 2 * MBSZ) {
-			collect_coverage(stats, MBSZ);
-			memmove(cell[stats->id], cell[stats->id] + MBSZ, MBSZ * sizeof(int));
-			memset(cell[stats->id] + MBSZ, 0, MBSZ * sizeof(int));
-			offset[stats->id] += MBSZ;
-			pos -= MBSZ;
-		}
-
 		if (opchr == 'D') {
 			pos += oplen;
 		} else if (opchr == 'M') {
@@ -101,6 +38,19 @@ void get_coverage(bam1_t *b, struct stats_t *stats)
 			pos += oplen;
 		}
 	}
+}
+
+void coverage_get(struct stats_t *stats, int target_len)
+{
+	int i, cnt;
+	for (i = cnt = 0; i < target_len; ++i) {
+		cnt += cell[stats->id][i];
+		assert(cnt >= 0);
+		if (cnt < N_COVER)
+			++stats->cover[cnt];
+	}
+	assert(cnt == 0);
+	free(cell[stats->id]);
 }
 
 void get_basic_stats(bam1_t *b, struct stats_t *stats)

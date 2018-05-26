@@ -84,7 +84,7 @@ void duplicate_process(struct stats_t *stats, samFile *out_bam_f, bam_hdr_t *b_h
 		}
 
 		sam_write1(out_bam_f, b_hdr, align[pos].b);
-		get_coverage(align[pos].b, stats);
+		coverage_add(align[pos].b, stats);
 		mlc_insert(align[pos].bx_id, align[pos].b, stats);
 		u = v;
 	}

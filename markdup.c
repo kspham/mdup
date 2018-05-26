@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
 	}
 
 	duplicate_init(bam_inf.b_hdr->n_targets);
-	coverage_init(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_len);
+	coverage_init(bam_inf.b_hdr->n_targets);
 	mlc_init(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
 
 	read_bam(&bam_inf);

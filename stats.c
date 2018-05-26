@@ -9,7 +9,7 @@ void coverage_init(int n_chr)
 
 void coverage_init_target(int id, int target_len)
 {
-	__CALLOC(cell[id], target_len);
+	__CALLOC(cell[id], target_len + 1);
 }
 
 void coverage_destroy()
@@ -49,6 +49,7 @@ void coverage_get(struct stats_t *stats, int target_len)
 		if (cnt < N_COVER)
 			++stats->cover[cnt];
 	}
+	cnt += cell[stats->id][target_len];
 	assert(cnt == 0);
 	free(cell[stats->id]);
 }

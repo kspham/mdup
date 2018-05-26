@@ -102,3 +102,22 @@ void mlc_get_last(struct stats_t *stats)
 		}
 	}
 }
+
+void mlc_fetch(struct stats_t *stats, int pos)
+{
+	int n = n_mlc[stats->id];
+	struct mlc_t *p = mlc[stats->id];
+	int i, start, end;
+
+	for (i = 0; i < n; ++i) {
+		struct mlc_t *memb = p + i;
+		if (memb->sz && memb->pos[memb->sz - 1] + MLC_CONS_THRES < pos) {
+			end = memb->pos[memb->sz - 1] + memb->last_len;
+			start = memb->pos[0];
+			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
+				mlc_out(stats->id, memb, memb->bar_s, start, end);
+			free(memb->bar_s);
+			memb->sz = 0;
+		}
+	}
+}

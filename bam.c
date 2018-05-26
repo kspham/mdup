@@ -60,6 +60,7 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 		bam_inf->b_hdr->target_name[id]);
 	samFile *out_bam_f = sam_open(file_path, "wb");
 	coverage_init_target(id, bam_inf->b_hdr->target_len[id]);
+	int pos_fetch = 0;
 
 	while (sam_itr_next(in_bam_f, iter, b) >= 0) {
 		uint8_t *tag_data;
@@ -93,6 +94,12 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 		bx_id = khash_bx_get_id(khash_bx, &bx_map_cnt, bar_s);
 
 		duplicate_insert(b, bx_id, stats, out_bam_f, bam_inf->b_hdr);
+
+		if (b->core.pos >= pos_fetch) {
+			while (pos_fetch < b->core.pos)
+				pos_fetch += MLC_CONS_THRES;
+			mlc_fetch(stats, b->core.pos);
+		}
 	}
 
 	duplicate_process(stats, out_bam_f, bam_inf->b_hdr);

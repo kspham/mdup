@@ -19,4 +19,6 @@ void mlc_insert(int bx_id, bam1_t *b, struct stats_t *stats);
 
 void mlc_get_last(struct stats_t *stats);
 
+void mlc_fetch(struct stats_t *stats, int pos);
+
 #endif /* _MOLECULE_H_ */

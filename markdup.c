@@ -97,14 +97,15 @@ static void output_mlc(int n_target, char **target_name)
 	int64_t total_mlc_detected = 0, total_mlc_len = 0, total_mlc_cnt = 0;
 	int64_t mlc_plot[N_MLC + 1], i;
 	memset(mlc_plot, 0, N_MLC * sizeof(int64_t));
+	int mlsize = 10 * BUFSZ;
+	char *str = malloc(mlsize);
 
 	for (i = 0; i < n_target; ++i) {
 		sprintf(file_path, "%s/temp.%s.mlc.tsv", args.out_dir, target_name[i]);
 		fi_temp = fopen(file_path, "r");
 		assert(fi_temp);
-		char *str = NULL;
-		size_t len = 0;
-		while (getline(&str, &len, fi_temp) != EOF) {
+
+		while (fgets(str, mlsize, fi_temp)) {
 			int mlc_len, n_read;
 			if (extract_mlc_record(str, &mlc_len, &n_read, khash_bx, &bx_map_cnt))
 				++total_gem_detected;
@@ -126,7 +127,6 @@ static void output_mlc(int n_target, char **target_name)
 			fprintf(fi_mlc, "%s\t%s\n", target_name[i], str);
 		}
 		fclose(fi_temp);
-		free(str);
 		if (remove(file_path) == -1)
 			__PERROR("Could not remove temp file");
 	}
@@ -151,6 +151,7 @@ static void output_mlc(int n_target, char **target_name)
 	fprintf(fi_sum, "\n");
 	fprintf(fi_sum, "******** GEM performance ********\n");
 	fprintf(fi_sum, "GEMs Detected:\t%ld\n", total_gem_detected);
+	fprintf(fi_sum, "Molecules Detected:\t%ld\n", total_mlc_detected);
 	fprintf(fi_sum, "Mean DNA per GEM:\t%ld\n", total_mlc_len / total_gem_detected);
 	fprintf(fi_sum, "DNA in Molecules >20kb:\t%.1f%%\n",
 		1.0 * total_dna_20kb / total_mlc_len * 100);
@@ -164,6 +165,7 @@ static void output_mlc(int n_target, char **target_name)
 
 	plot_mlc_len(mlc_plot);
 
+	free(str);
 	free(mlc_cnt);
 	khash_bx_destroy(khash_bx);
 	fclose(fi_sum);

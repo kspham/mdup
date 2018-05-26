@@ -132,7 +132,7 @@ void plot_mlc_len(const int64_t *mlc_len)
 	fprintf(fi, "},\n");
 	fprintf(fi, "series: [{\n");
 	fprintf(fi, "type: 'bar',\n");
-	fprintf(fi, "barWidth: '8',\n");
+	fprintf(fi, "barWidth: '6',\n");
 	fprintf(fi, "barGap: '2',\n");
 	fprintf(fi, "data: [");
 	for (i = 0; i < N_MLC_LEN; ++i) {
@@ -195,7 +195,7 @@ void plot_mlc_cover(const int64_t *mlc_cover)
 	fprintf(fi, "},\n");
 	fprintf(fi, "series: [{\n");
 	fprintf(fi, "type: 'bar',\n");
-	fprintf(fi, "barWidth: '8',\n");
+	fprintf(fi, "barWidth: '6',\n");
 	fprintf(fi, "barGap: '2',\n");
 	fprintf(fi, "data: [");
 	for (i = 0; i < N_MLC_COVER; ++i) {

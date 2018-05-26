@@ -35,7 +35,7 @@ static int cmpfunc_int(const void *a, const void *b)
 	return *(int *)a - *(int *)b;
 }
 
-static bool extract_mlc_record(char *str, int *len, int *n_read,
+static bool extract_mlc_record(char *str, int *len, int *n_read, int *mlc_cover,
 			       khash_t(KHASH_STR) *khash_bx, int *bx_map_cnt)
 {
 	int u = 0, v = 0;
@@ -80,6 +80,23 @@ static bool extract_mlc_record(char *str, int *len, int *n_read,
 	str[v] = '\0';
 	*n_read = atoi(str + u);
 	str[v] = '\t';
+	u = ++v;
+	while (str[v] != '.') {
+		assert(str[v]);
+		++v;
+	}
+	str[v] = '\0';
+	int left_part = atoi(str + u);
+	str[v] = '.';
+	u = ++v;
+	while (str[v] != '\n') {
+		assert(str[v]);
+		++v;
+	}
+	str[v] = '\0';
+	int right_part = atoi(str + u);
+	str[v] = '\n';
+	*mlc_cover = left_part * 100 + right_part;
 	return ret;
 }
 
@@ -95,20 +112,22 @@ static void output_mlc(int n_target, char **target_name)
 	khash_t(KHASH_STR) *khash_bx = kh_init(KHASH_STR);
 	int64_t total_gem_detected = 0, total_dna_20kb = 0, total_dna_100kb = 0;
 	int64_t total_mlc_detected = 0, total_mlc_len = 0, total_mlc_cnt = 0;
-	int64_t mlc_plot[N_MLC + 1], i;
-	memset(mlc_plot, 0, N_MLC * sizeof(int64_t));
-	int mlsize = 10 * BUFSZ;
-	char *str = malloc(mlsize);
+	int64_t mlc_len_plot[N_MLC_LEN + 1], mlc_cover_plot[N_MLC_COVER + 1], i;
+	memset(mlc_len_plot, 0, N_MLC_LEN * sizeof(int64_t));
+	memset(mlc_cover_plot, 0, N_MLC_COVER * sizeof(int64_t));
+	char *str = malloc(BUFSZ);
 
 	for (i = 0; i < n_target; ++i) {
 		sprintf(file_path, "%s/temp.%s.mlc.tsv", args.out_dir, target_name[i]);
 		fi_temp = fopen(file_path, "r");
 		assert(fi_temp);
 
-		while (fgets(str, mlsize, fi_temp)) {
-			int mlc_len, n_read;
-			if (extract_mlc_record(str, &mlc_len, &n_read, khash_bx, &bx_map_cnt))
+		while (fgets(str, BUFSZ, fi_temp)) {
+			int mlc_len, n_read, mlc_cover;
+			if (extract_mlc_record(str, &mlc_len, &n_read, &mlc_cover,
+					       khash_bx, &bx_map_cnt)) {
 				++total_gem_detected;
+			}
 			++total_mlc_detected;
 			total_mlc_cnt += n_read;
 			total_mlc_len += mlc_len;
@@ -116,15 +135,19 @@ static void output_mlc(int n_target, char **target_name)
 				total_dna_20kb += mlc_len;
 			if (mlc_len >= MLC_100KB)
 				total_dna_100kb += mlc_len;
-			if (mlc_len / MLC_BIN_PLOT < N_MLC)
-				mlc_plot[mlc_len / MLC_BIN_PLOT] += mlc_len;
+			if (mlc_len / MLC_BIN_PLOT < N_MLC_LEN)
+				mlc_len_plot[mlc_len / MLC_BIN_PLOT] += mlc_len;
 			else
-				mlc_plot[N_MLC] += mlc_len;
+				mlc_len_plot[N_MLC_LEN] += mlc_len;
+			if (mlc_cover < N_MLC_COVER)
+				mlc_cover_plot[mlc_cover]++;
+			else
+				mlc_cover_plot[N_MLC_COVER]++;
 			++mlc_cnt_sz;
 			if ((mlc_cnt_sz & (mlc_cnt_sz - 1)) == 0)
 				__REALLOC(mlc_cnt, mlc_cnt_sz << 1);
 			mlc_cnt[mlc_cnt_sz - 1] = n_read;
-			fprintf(fi_mlc, "%s\t%s\n", target_name[i], str);
+			fprintf(fi_mlc, "%s\t%s", target_name[i], str);
 		}
 		fclose(fi_temp);
 		if (remove(file_path) == -1)
@@ -163,7 +186,8 @@ static void output_mlc(int n_target, char **target_name)
 		1.0 * total_mlc_detected / total_gem_detected);
 	fprintf(fi_sum, "N50 Reads per Molecule (LPM):\t%d\n", n50_read_per_mlc);
 
-	plot_mlc_len(mlc_plot);
+	plot_mlc_len(mlc_len_plot);
+	plot_mlc_cover(mlc_cover_plot);
 
 	free(str);
 	free(mlc_cnt);
@@ -360,6 +384,10 @@ int main(int argc, char *argv[])
 
 	read_bam(&bam_inf);
 
+	coverage_destroy(bam_inf.b_hdr->n_targets);
+	mlc_destroy(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
+	duplicate_destroy();
+
 	__VERBOSE("Output result ... \n");
 	char file_path[BUFSZ];
 	sprintf(file_path, "%s/plot.html", args.out_dir);
@@ -370,9 +398,6 @@ int main(int argc, char *argv[])
 	plot_destroy();
 	bam_hdr_destroy(bam_inf.b_hdr);
 	free(bam_inf.bam_i);
-	coverage_destroy(bam_inf.b_hdr->n_targets);
-	mlc_destroy(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
-	duplicate_destroy();
 	pthread_mutex_destroy(&lock_id);
 	pthread_mutex_destroy(&lock_merge);
 

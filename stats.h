@@ -6,7 +6,8 @@
 /* stats attribute */
 #define N_COVER			80
 #define N_ISIZE 		1000
-#define N_MLC			100
+#define N_MLC_LEN		100
+#define N_MLC_COVER		100
 
 struct stats_t {
 	int id;

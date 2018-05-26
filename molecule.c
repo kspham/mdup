@@ -22,11 +22,10 @@ void mlc_destroy(int n_target, char **target_name)
 {
 	int i, j;
 	for (i = 0; i < n_target; ++i) {
-		for (j = 0; j < n_mlc[i]; ++j) {
-			free(mlc[i][j].pos);
+		for (j = 0; j < n_mlc[i]; ++j)
 			free(mlc[i][j].bar_s);
-		}
 		free(mlc[i]);
+		fclose(fi[i]);
 	}
 	__FREE_AND_NULL(mlc);
 	__FREE_AND_NULL(n_mlc);
@@ -34,13 +33,9 @@ void mlc_destroy(int n_target, char **target_name)
 
 static void mlc_out(int id, struct mlc_t *memb, char *bar_s, int start, int end)
 {
-	int i;
-	fprintf(fi[id], "%d\t%d\t%d\t%s\t%d\t",
-		start, end, end - start, bar_s, memb->sz);
-	for (i = 0; i < memb->sz; ++i) {
-		fprintf(fi[id], "%d", memb->pos[i]);
-		fprintf(fi[id], i == memb->sz - 1 ? "\n" : ",");
-	}
+	int len = end - start;
+	fprintf(fi[id], "%d\t%d\t%d\t%s\t%d\t%.2f\n",
+		start, end, len, bar_s, memb->sz, 1.0 * memb->sum_len / len);
 }
 
 void mlc_insert(int bx_id, bam1_t *b, struct stats_t *stats)
@@ -65,24 +60,26 @@ void mlc_insert(int bx_id, bam1_t *b, struct stats_t *stats)
 	struct mlc_t *memb = *p + bx_id;
 	int start, end;
 
-	if (memb->sz && memb->pos[memb->sz - 1] < pos - MLC_CONS_THRES) {
-		end = memb->pos[memb->sz - 1] + memb->last_len;
-		start = memb->pos[0];
+	if (memb->sz && memb->end < pos - MLC_CONS_THRES) {
+		end = memb->end + memb->last_len;
+		start = memb->start;
 		if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 			mlc_out(stats->id, memb, memb->bar_s, start, end);
 		free(memb->bar_s);
 		memb->sz = 1;
-		__REALLOC(memb->pos, 1);
-		memb->pos[0] = pos;
+		memb->start = memb->end = pos;
+		memb->sum_len = len;
 		memb->last_len = len;
 		memb->bar_s = strdup(bar_s);
 	} else {
 		++memb->sz;
-		__REALLOC(memb->pos, memb->sz);
-		memb->pos[memb->sz - 1] = pos;
+		memb->end = pos;
 		memb->last_len = len;
-		if (memb->sz == 1)
+		memb->sum_len += len;
+		if (memb->sz == 1) {
+			memb->start = pos;
 			memb->bar_s = strdup(bar_s);
+		}
 	}
 }
 
@@ -95,10 +92,12 @@ void mlc_get_last(struct stats_t *stats)
 	for (i = 0; i < n; ++i) {
 		struct mlc_t *memb = p + i;
 		if (memb->sz) {
-			end = memb->pos[memb->sz - 1] + memb->last_len;
-			start = memb->pos[0];
+			end = memb->end + memb->last_len;
+			start = memb->start;
 			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 				mlc_out(stats->id, memb, memb->bar_s, start, end);
+			free(memb->bar_s);
+			memb->bar_s = NULL;
 		}
 	}
 }
@@ -111,12 +110,13 @@ void mlc_fetch(struct stats_t *stats, int pos)
 
 	for (i = 0; i < n; ++i) {
 		struct mlc_t *memb = p + i;
-		if (memb->sz && memb->pos[memb->sz - 1] + MLC_CONS_THRES < pos) {
-			end = memb->pos[memb->sz - 1] + memb->last_len;
-			start = memb->pos[0];
+		if (memb->sz && memb->end + MLC_CONS_THRES < pos) {
+			end = memb->end + memb->last_len;
+			start = memb->start;
 			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 				mlc_out(stats->id, memb, memb->bar_s, start, end);
 			free(memb->bar_s);
+			memb->bar_s = NULL;
 			memb->sz = 0;
 		}
 	}

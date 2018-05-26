@@ -10,6 +10,8 @@ void plot_coverage(const int64_t *cover);
 
 void plot_mlc_len(const int64_t *mlc_len);
 
+void plot_mlc_cover(const int64_t *mlc_cover);
+
 void plot_destroy();
 
 #endif /* _PLOT_H_ */

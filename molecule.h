@@ -5,8 +5,10 @@
 #include "stats.h"
 
 struct mlc_t {
-	int *pos;
+	int start;
+	int end;
 	int last_len;
+	int sum_len;
 	int sz;
 	char *bar_s;
 };

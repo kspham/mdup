@@ -69,7 +69,7 @@ void plot_coverage(const int64_t *cover)
 	fprintf(fi, "});\n");
 }
 
-void plot_mlc_len(const int *mlc_len)
+void plot_mlc_len(const int64_t *mlc_len)
 {
 	int i;
 
@@ -123,7 +123,7 @@ void plot_mlc_len(const int *mlc_len)
 	fprintf(fi, "barGap: '2',\n");
 	fprintf(fi, "data: [");
 	for (i = 0; i < N_MLC; ++i) {
-		fprintf(fi, "%d", mlc_len[i]);
+		fprintf(fi, "%ld", mlc_len[i]);
 		if (i < N_MLC - 1)
 			fprintf(fi, ", ");
 	}

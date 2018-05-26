@@ -70,7 +70,8 @@ void get_args(int argc, char *argv[])
 		exit(1);
 	}
 
-	args.n_thread = __min(args.n_thread, 20);
+	/* limit max threads because bottle neck from I/O */
+	args.n_thread = __min(args.n_thread, 10);
 	args.n_thread = __max(args.n_thread, 1);
 	make_dir(args.out_dir);
 }

@@ -8,7 +8,7 @@ void plot_init(const char *file_path);
 
 void plot_coverage(const int64_t *cover);
 
-void plot_mlc_len(const int *mlc_len);
+void plot_mlc_len(const int64_t *mlc_len);
 
 void plot_destroy();
 

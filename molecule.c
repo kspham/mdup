@@ -68,7 +68,7 @@ void mlc_insert(int bx_id, bam1_t *b, struct stats_t *stats)
 	if (memb->sz && memb->pos[memb->sz - 1] < pos - MLC_CONS_THRES) {
 		end = memb->pos[memb->sz - 1] + memb->last_len;
 		start = memb->pos[0];
-		if (memb->sz >= MIN_MLC_READ)
+		if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 			mlc_out(stats->id, memb, memb->bar_s, start, end);
 		free(memb->bar_s);
 		memb->sz = 1;
@@ -97,7 +97,7 @@ void mlc_get_last(struct stats_t *stats)
 		if (memb->sz) {
 			end = memb->pos[memb->sz - 1] + memb->last_len;
 			start = memb->pos[0];
-			if (memb->sz >= MIN_MLC_READ)
+			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 				mlc_out(stats->id, memb, memb->bar_s, start, end);
 		}
 	}

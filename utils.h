@@ -114,9 +114,6 @@ size_t xfread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 /* check fwrite function write enough nmemb */
 size_t xfwrite(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
-/* auto remove /n character if found */
-ssize_t xgetline(char **str, size_t *n, FILE *stream);
-
 /* get time */
 double realtime();
 

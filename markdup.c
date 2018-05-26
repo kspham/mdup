@@ -35,35 +35,54 @@ static int cmpfunc_int(const void *a, const void *b)
 	return *(int *)a - *(int *)b;
 }
 
-static void extract_mlc_record(char *str, int *len, int *n_read, char **bar_s)
+static bool extract_mlc_record(char *str, int *len, int *n_read,
+			       khash_t(KHASH_STR) *khash_bx, int *bx_map_cnt)
 {
 	int u = 0, v = 0;
-	while (str[u] != '\t')
+	while (str[u] != '\t') {
+		assert(str[u]);
 		++u;
+	}
 	++u;
-	while (str[u] != '\t')
+	while (str[u] != '\t') {
+		assert(str[u]);
 		++u;
+	}
 	++u;
 	v = u;
-	while (str[v] != '\t')
+	while (str[v] != '\t') {
+		assert(str[v]);
 		++v;
+	}
 	str[v] = '\0';
 	*len = atoi(str + u);
 	str[v] = '\t';
 	u = ++v;
-	v = u;
-	while (str[v] != '\t')
+	while (str[v] != '\t') {
+		assert(str[v]);
 		++v;
+	}
 	str[v] = '\0';
-	*bar_s = str + u;
+	char *bar_s = str + u;
+	int prev_val = *bx_map_cnt;
+	bool ret;
+	khash_bx_get_id(khash_bx, bx_map_cnt, bar_s);
+	if (*bx_map_cnt > prev_val)
+		ret = true;
+	else
+		ret = false;
+	str[v] = '\t';
 	u = ++v;
-	v = u;
-	while (str[v] != '\t')
+	while (str[v] != '\t') {
+		assert(str[v]);
 		++v;
+	}
 	str[v] = '\0';
 	*n_read = atoi(str + u);
 	str[v] = '\t';
+	return ret;
 }
+
 static void output_mlc(int n_target, char **target_name)
 {
 	char file_path[BUFSZ];
@@ -76,35 +95,30 @@ static void output_mlc(int n_target, char **target_name)
 	khash_t(KHASH_STR) *khash_bx = kh_init(KHASH_STR);
 	int64_t total_gem_detected = 0, total_dna_20kb = 0, total_dna_100kb = 0;
 	int64_t total_mlc_detected = 0, total_mlc_len = 0, total_mlc_cnt = 0;
-	char *str = NULL;
-	size_t len = 0;
-	int mlc_plot[N_MLC + 1], i;
-	memset(mlc_plot, 0, N_MLC * sizeof(int));
+	int64_t mlc_plot[N_MLC + 1], i;
+	memset(mlc_plot, 0, N_MLC * sizeof(int64_t));
 
 	for (i = 0; i < n_target; ++i) {
 		sprintf(file_path, "%s/temp.%s.mlc.tsv", args.out_dir, target_name[i]);
 		fi_temp = fopen(file_path, "r");
 		assert(fi_temp);
-		while (xgetline(&str, &len, fi_temp) != EOF) {
-			int len, n_read, prev_val;
-			char *bar_s;
-			extract_mlc_record(str, &len, &n_read, &bar_s);
+		char *str = NULL;
+		size_t len = 0;
+		while (getline(&str, &len, fi_temp) != EOF) {
+			int mlc_len, n_read;
+			if (extract_mlc_record(str, &mlc_len, &n_read, khash_bx, &bx_map_cnt))
+				++total_gem_detected;
 			++total_mlc_detected;
 			total_mlc_cnt += n_read;
-			total_mlc_len += len;
-			if (len >= MLC_20KB)
-				total_dna_20kb += len;
-			if (len >= MLC_100KB)
-				total_dna_100kb += len;
-			if (len / MLC_BIN_PLOT < N_MLC)
-				mlc_plot[len / MLC_BIN_PLOT]++;
+			total_mlc_len += mlc_len;
+			if (mlc_len >= MLC_20KB)
+				total_dna_20kb += mlc_len;
+			if (mlc_len >= MLC_100KB)
+				total_dna_100kb += mlc_len;
+			if (mlc_len / MLC_BIN_PLOT < N_MLC)
+				mlc_plot[mlc_len / MLC_BIN_PLOT] += mlc_len;
 			else
-				mlc_plot[N_MLC]++;
-			prev_val = bx_map_cnt;
-			khash_bx_get_id(khash_bx, &bx_map_cnt, bar_s);
-			bar_s[strlen(bar_s)] = '\t';
-			if (bx_map_cnt > prev_val)
-				++total_gem_detected;
+				mlc_plot[N_MLC] += mlc_len;
 			++mlc_cnt_sz;
 			if ((mlc_cnt_sz & (mlc_cnt_sz - 1)) == 0)
 				__REALLOC(mlc_cnt, mlc_cnt_sz << 1);
@@ -112,6 +126,7 @@ static void output_mlc(int n_target, char **target_name)
 			fprintf(fi_mlc, "%s\t%s\n", target_name[i], str);
 		}
 		fclose(fi_temp);
+		free(str);
 		if (remove(file_path) == -1)
 			__PERROR("Could not remove temp file");
 	}
@@ -149,7 +164,6 @@ static void output_mlc(int n_target, char **target_name)
 
 	plot_mlc_len(mlc_plot);
 
-	free(str);
 	free(mlc_cnt);
 	khash_bx_destroy(khash_bx);
 	fclose(fi_sum);
@@ -305,12 +319,12 @@ static int load_reference(char *file_path)
 	ungetc(c, fi);
 
 	id = -1;
-	while (xgetline(&s, &len, fi) != EOF) {
+	while (getline(&s, &len, fi) != EOF) {
 		if (s[0] == '>') {
 			++id;
 			continue;
 		}
-		for (i = 0; s[i]; ++i)
+		for (i = 0; s[i] && s[i] != '\n'; ++i)
 			if (nt4_table[s[i]] == 4)
 				++sum_amb;
 	}

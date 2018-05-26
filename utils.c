@@ -40,16 +40,6 @@ size_t xfwrite(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	return ret;
 }
 
-ssize_t xgetline(char **str, size_t *n, FILE *stream)
-{
-	ssize_t ret = getline(str, n, stream);
-	if (ret == 0 || ret == -1)
-		return ret;
-	if ((*str)[ret - 1] == '\n')
-		(*str)[--ret] = '\0';
-	return ret;
-}
-
 double realtime()
 {
 	struct timeval tp;

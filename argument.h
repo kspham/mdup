@@ -3,7 +3,7 @@
 
 #include "attr.h"
 
-#define VERSION			"1.1"
+#define VERSION			"1.2"
 
 struct prog_args {
 	int n_thread;

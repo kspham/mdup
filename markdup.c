@@ -262,7 +262,7 @@ static void output_result(struct stats_t *stats, char **target_name)
 		1.0 * (stats->sum_len1 + stats->sum_len2) / (sum_nt4 + sum_amb));
 	fprintf(fi_sum, "\n");
 
-	plot_coverage(stats->cover);
+	plot_read_cover(stats->cover);
 
 	fclose(fi_sum);
 }
@@ -407,11 +407,13 @@ int main(int argc, char *argv[])
 	__VERBOSE("Output result ... \n");
 	char file_path[BUFSZ];
 	sprintf(file_path, "%s/plot.html", args.out_dir);
-	plot_init(file_path);
+	plot_render(file_path);
+	sprintf(file_path, "%s/data.js", args.out_dir);
+	plot_data_init(file_path);
 	output_result(&all_stats, bam_inf.b_hdr->target_name);
 	output_mlc(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
 
-	plot_destroy();
+	plot_data_destroy();
 	bam_hdr_destroy(bam_inf.b_hdr);
 	free(bam_inf.bam_i);
 	pthread_mutex_destroy(&lock_id);

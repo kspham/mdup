@@ -3,7 +3,7 @@
 
 static int *n_mlc;
 static struct mlc_t **mlc;
-static FILE **fi;
+static FILE **fi, **fi_filter;
 
 void mlc_init(int n_target, char **target_name)
 {
@@ -11,10 +11,13 @@ void mlc_init(int n_target, char **target_name)
 	__CALLOC(n_mlc, n_target);
 	__CALLOC(mlc, n_target);
 	__CALLOC(fi, n_target);
+	__CALLOC(fi_filter, n_target);
 	char file_path[BUFSZ];
 	for (i = 0; i < n_target; ++i) {
 		sprintf(file_path, "%s/temp.%s.mlc.tsv", args.out_dir, target_name[i]);
 		fi[i] = fopen(file_path, "w");
+		sprintf(file_path, "%s/temp.filter.%s.mlc.tsv", args.out_dir, target_name[i]);
+		fi_filter[i] = fopen(file_path, "w");
 	}
 }
 
@@ -26,6 +29,7 @@ void mlc_destroy(int n_target, char **target_name)
 			free(mlc[i][j].bar_s);
 		free(mlc[i]);
 		fclose(fi[i]);
+		fclose(fi_filter[i]);
 	}
 	__FREE_AND_NULL(mlc);
 	__FREE_AND_NULL(n_mlc);
@@ -35,6 +39,13 @@ static void mlc_out(int id, struct mlc_t *memb, char *bar_s, int start, int end)
 {
 	int len = end - start;
 	fprintf(fi[id], "%d\t%d\t%d\t%s\t%d\t%.2f\n",
+		start, end, len, bar_s, memb->sz, 1.0 * memb->sum_len / len);
+}
+
+static void mlc_filter(int id, struct mlc_t *memb, char *bar_s, int start, int end)
+{
+	int len = end - start;
+	fprintf(fi_filter[id], "%d\t%d\t%d\t%s\t%d\t%.2f\n",
 		start, end, len, bar_s, memb->sz, 1.0 * memb->sum_len / len);
 }
 
@@ -65,6 +76,8 @@ void mlc_insert(int bx_id, bam1_t *b, struct stats_t *stats)
 		start = memb->start;
 		if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 			mlc_out(stats->id, memb, memb->bar_s, start, end);
+		else
+			mlc_filter(stats->id, memb, memb->bar_s, start, end);
 		free(memb->bar_s);
 		memb->sz = 1;
 		memb->start = memb->end = pos;
@@ -96,6 +109,8 @@ void mlc_get_last(struct stats_t *stats)
 			start = memb->start;
 			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 				mlc_out(stats->id, memb, memb->bar_s, start, end);
+			else
+				mlc_filter(stats->id, memb, memb->bar_s, start, end);
 			free(memb->bar_s);
 			memb->bar_s = NULL;
 		}
@@ -115,6 +130,8 @@ void mlc_fetch(struct stats_t *stats, int pos)
 			start = memb->start;
 			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
 				mlc_out(stats->id, memb, memb->bar_s, start, end);
+			else
+				mlc_filter(stats->id, memb, memb->bar_s, start, end);
 			free(memb->bar_s);
 			memb->bar_s = NULL;
 			memb->sz = 0;

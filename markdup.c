@@ -105,8 +105,12 @@ static void output_mlc(int n_target, char **target_name)
 	char file_path[BUFSZ];
 	sprintf(file_path, "%s/molecule.tsv", args.out_dir);
 	FILE *fi_mlc = fopen(file_path, "w"), *fi_temp;
+	sprintf(file_path, "%s/molecule.filter.tsv", args.out_dir);
+	FILE *fi_mlc_filter = fopen(file_path, "w");
 	if (!fi_mlc)
 		__PERROR("Could not open file molecule.tsv");
+	if (!fi_mlc_filter)
+		__PERROR("Could not open file molecule.filter.tsv");
 
 	int bx_map_cnt = 0, mlc_cnt_sz = 0, *mlc_cnt = NULL;
 	khash_t(KHASH_STR) *khash_bx = kh_init(KHASH_STR);
@@ -154,6 +158,17 @@ static void output_mlc(int n_target, char **target_name)
 			__PERROR("Could not remove temp file");
 	}
 
+	for (i = 0; i < n_target; ++i) {
+		sprintf(file_path, "%s/temp.filter.%s.mlc.tsv", args.out_dir, target_name[i]);
+		fi_temp = fopen(file_path, "r");
+		assert(fi_temp);
+		while (fgets(str, BUFSZ, fi_temp))
+			fprintf(fi_mlc_filter, "%s\t%s", target_name[i], str);
+		fclose(fi_temp);
+		if (remove(file_path) == -1)
+			__PERROR("Could not remove temp file");
+	}
+
 	qsort(mlc_cnt, mlc_cnt_sz, sizeof(int), cmpfunc_int);
 	int64_t sum1 = 0, sum2 = 0;
 	int n50_read_per_mlc = -1;
@@ -194,6 +209,7 @@ static void output_mlc(int n_target, char **target_name)
 	khash_bx_destroy(khash_bx);
 	fclose(fi_sum);
 	fclose(fi_mlc);
+	fclose(fi_mlc_filter);
 }
 
 static void output_result(struct stats_t *stats, char **target_name)
@@ -309,12 +325,12 @@ static void read_bam(struct bam_inf_t *bam_inf)
 	for (i = 0; i < bam_inf->b_hdr->n_targets; ++i) {
 		sprintf(file_path, "%s/temp.%s.bam", args.out_dir,
 			bam_inf->b_hdr->target_name[i]);
-		append_file(result_path, file_path);
+		append_file(result_path, file_path, -28);
 		if (remove(file_path) == -1)
 			__PERROR("Could not remove temp file");
 	}
 	sprintf(file_path, "%s/unmapped.bam", args.out_dir);
-	append_file(result_path, file_path);
+	append_file(result_path, file_path, -28);
 	remove(file_path);
 
 	free(pthr);

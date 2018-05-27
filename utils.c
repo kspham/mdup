@@ -107,12 +107,13 @@ char *str_concate(const char *str1, const char *str2)
 	return str3;
 }
 
-void append_file(const char *dest, const char *src)
+void append_file(const char *dest, const char *src, int offset)
 {
-	FILE *fi_dest = fopen(dest, "a");
+	FILE *fi_dest = fopen(dest, "r+");
 	FILE *fi_src = fopen(src, "r");
 	assert(fi_dest);
 	assert(fi_src);
+	fseek(fi_dest, offset, SEEK_END);
 	while (1) {
 		char buf[MBSZ];
 		memset(buf, 0, MBSZ);

@@ -37,8 +37,6 @@ void read_bam_unmapped(struct bam_inf_t *bam_inf, struct stats_t *stats)
 			__ERROR("Unmapped read doesn't have not primary flag or suplementary flag!");
 		}
 		get_basic_stats(b, stats);
-		if (!args.is_remove)
-			sam_write1(out_bam_f, bam_inf->b_hdr, b);
 	}
 
 	bam_destroy1(b);
@@ -71,8 +69,6 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 		if (b->core.flag & (FLAG_NOT_PRI | FLAG_SUPPLEMENT)) {
 			duplicate_try_process(b->core.pos, stats,
 					      out_bam_f, bam_inf->b_hdr);
-			if (!args.is_remove)
-				sam_write1(out_bam_f, bam_inf->b_hdr, b);
 			continue;
 		}
 
@@ -82,8 +78,6 @@ void read_bam_target(struct bam_inf_t *bam_inf, int id, struct stats_t *stats)
 		if (b->core.n_cigar == 0) {
 			duplicate_try_process(b->core.pos, stats,
 					      out_bam_f, bam_inf->b_hdr);
-			if (!args.is_remove)
-				sam_write1(out_bam_f, bam_inf->b_hdr, b);
 			continue;
 		}
 

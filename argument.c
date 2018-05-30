@@ -16,7 +16,7 @@ void print_usage()
 	__VERBOSE("  -t INT                number of threads [4]\n");
 	__VERBOSE("  -o DIR                output directory [\"./mdup_out/\"]\n");
 	__VERBOSE("  -g FILE               reference file that generated bam file (better statictis)\n");
-	__VERBOSE("  -k                    keep all record from BAM file, turn on duplicate bit flag instead.\n");
+	__VERBOSE("  -k                    don't mark duplicate\n");
 	__VERBOSE("\n");
 	__VERBOSE("This tool will generate some file in output directory:\n");
 	__VERBOSE("  output.bam            BAM file after processed\n");
@@ -33,7 +33,7 @@ void get_args(int argc, char *argv[])
 	args.is_remove = true;
 	args.reference = NULL;
 
-	if (argc < 3) {
+	if (argc < 2) {
 		print_usage();
 		exit(0);
 	}

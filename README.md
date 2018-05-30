@@ -2,16 +2,19 @@
 
 Developed by BioTuring (www.bioturing.com), <i><b>mdup</b></i> is a tool that preprocess cloud-read data (read has barcode). <i><b>mdup</b></i> will do: 
 
-- Markdup PCR duplication, remove not primary reads, duplicate reads, secondary alignment, unmapped reads.
+- Remove duplicate reads, remove not primary reads, secondary alignment, unmapped reads.
 - Detect molecule by clustering reads have same barcode into group.
 - Get stats about sequencing and GEM performance.
+
+Two reads are consider duplicate if they share same mapped position, mapped target, cigar,
+mate info (if paired-end).
 
 ## Install
 
 ```shell
 git clone https://github.com/bioturing/mdup.git
 cd mdup
-sh build.sh
+bash build.sh
 ```
 
 ## Usage
@@ -32,7 +35,7 @@ Optional arguments:
   -t INT                number of threads [default: 1]
   -o DIR                output directory [default: "./mdup_out/"]
   -g FILE               reference file that generated bam file (for better stats)
-  -k                    keep all record from BAM file, turn on duplicate bit flag instead.
+  -k                    don't mark duplicate.
 ```
 
 # Contacts

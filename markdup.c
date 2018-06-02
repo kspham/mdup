@@ -9,7 +9,7 @@
 #include "plot.h"
 
 static int n_done;
-static double prev_time;
+static double prev_time, begin_real_time, begin_cpu_time;
 static int64_t sum_nt4, sum_amb;
 static struct stats_t all_stats;
 
@@ -219,7 +219,7 @@ static void output_result(struct stats_t *stats, char **target_name)
 	FILE *fi_sum;
 
 	sprintf(file_path, "%s/summary.inf", args.out_dir);
-	if (!(fi_sum = fopen(file_path, "w")))
+	if (!(fi_sum = fopen(file_path, "a")))
 		__PERROR("Could not open summary.inf");
 
 	/* output sequencing summary */
@@ -263,6 +263,35 @@ static void output_result(struct stats_t *stats, char **target_name)
 	fprintf(fi_sum, "\n");
 
 	plot_read_cover(stats->cover);
+
+	fclose(fi_sum);
+}
+
+static void output_cmd(int argc, char *argv[])
+{
+	FILE *fi_sum;
+	char file_path[BUFSZ];
+	int i;
+
+	sprintf(file_path, "%s/summary.inf", args.out_dir);
+	if (!(fi_sum = fopen(file_path, "a")))
+		__PERROR("Could not open summary.inf");
+
+	/* output sequencing summary */
+	fprintf(fi_sum, "******** Log info ********\n");
+	fprintf(fi_sum, "Version: %s\n", VERSION);
+	fprintf(fi_sum, "CMD: ");
+
+	for (i = 0; i < argc; ++i) {
+		fprintf(fi_sum, "%s", argv[i]);
+		if (i == argc - 1)
+			fprintf(fi_sum, "\n");
+		else
+			fprintf(fi_sum, " ");
+	}
+
+	fprintf(fi_sum, "Real time: %.1f sec; CPU: %.1f sec\n\n\n",
+		realtime() - begin_real_time, cputime() - begin_cpu_time);
 
 	fclose(fi_sum);
 }
@@ -379,6 +408,8 @@ static int load_reference(char *file_path)
 int main(int argc, char *argv[])
 {
 	int i;
+	begin_cpu_time = cputime();
+	begin_real_time = realtime();
 
 	get_args(argc, argv);
 	struct bam_inf_t bam_inf;
@@ -410,6 +441,8 @@ int main(int argc, char *argv[])
 	plot_render(file_path);
 	sprintf(file_path, "%s/data.js", args.out_dir);
 	plot_data_init(file_path);
+
+	output_cmd(argc, argv);
 	output_result(&all_stats, bam_inf.b_hdr->target_name);
 	output_mlc(bam_inf.b_hdr->n_targets, bam_inf.b_hdr->target_name);
 

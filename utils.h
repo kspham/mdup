@@ -18,6 +18,7 @@
 
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 /* color terminal */
 #define RED			"\x1B[31m"
@@ -114,8 +115,11 @@ size_t xfread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 /* check fwrite function write enough nmemb */
 size_t xfwrite(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
-/* get time */
+/* get real time */
 double realtime();
+
+/* get cpu time */
+double cputime();
 
 /* make directory if is not exist */
 void make_dir(const char *path);

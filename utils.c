@@ -43,9 +43,15 @@ size_t xfwrite(void *ptr, size_t size, size_t nmemb, FILE *stream)
 double realtime()
 {
 	struct timeval tp;
-	struct timezone tzp;
-	gettimeofday(&tp, &tzp);
+	gettimeofday(&tp, NULL);
 	return tp.tv_sec + tp.tv_usec * 1e-6;
+}
+
+double cputime()
+{
+	struct rusage r;
+	getrusage(RUSAGE_SELF, &r);
+	return r.ru_utime.tv_sec + r.ru_stime.tv_sec + 1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
 }
 
 void make_dir(const char *path)

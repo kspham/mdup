@@ -3,7 +3,7 @@
 
 #include "attr.h"
 
-#define VERSION			"1.3"
+#define VERSION			"1.4"
 
 struct prog_args {
 	int n_thread;
@@ -11,6 +11,8 @@ struct prog_args {
 	char *in_bam;
 	char *reference;
 	char *out_dir;
+	int thres_read_mlc;
+	int thres_len_mlc;
 };
 
 void print_usage();

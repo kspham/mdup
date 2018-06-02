@@ -18,9 +18,6 @@
 #define FLAG_SUPPLEMENT		0x800	/* Alignment is supplementary */
 
 #define MLC_CONS_THRES		50000
-#define MIN_MLC_READ		4
-#define MIN_MLC_LEN		1000
-
 #define MLC_20KB		20000
 #define MLC_100KB		100000
 #define MLC_BIN_PLOT		4000

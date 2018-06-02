@@ -74,7 +74,8 @@ void mlc_insert(int bx_id, bam1_t *b, struct stats_t *stats)
 	if (memb->sz && memb->end < pos - MLC_CONS_THRES) {
 		end = memb->end + memb->last_len;
 		start = memb->start;
-		if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
+		if (memb->sz >= args.thres_read_mlc &&
+		    end - start >= args.thres_len_mlc)
 			mlc_out(stats->id, memb, memb->bar_s, start, end);
 		else
 			mlc_filter(stats->id, memb, memb->bar_s, start, end);
@@ -107,7 +108,8 @@ void mlc_get_last(struct stats_t *stats)
 		if (memb->sz) {
 			end = memb->end + memb->last_len;
 			start = memb->start;
-			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
+			if (memb->sz >= args.thres_read_mlc &&
+			    end - start >= args.thres_len_mlc)
 				mlc_out(stats->id, memb, memb->bar_s, start, end);
 			else
 				mlc_filter(stats->id, memb, memb->bar_s, start, end);
@@ -128,7 +130,8 @@ void mlc_fetch(struct stats_t *stats, int pos)
 		if (memb->sz && memb->end + MLC_CONS_THRES < pos) {
 			end = memb->end + memb->last_len;
 			start = memb->start;
-			if (memb->sz >= MIN_MLC_READ && end - start >= MIN_MLC_LEN)
+			if (memb->sz >= args.thres_read_mlc &&
+			    end - start >= args.thres_len_mlc)
 				mlc_out(stats->id, memb, memb->bar_s, start, end);
 			else
 				mlc_filter(stats->id, memb, memb->bar_s, start, end);

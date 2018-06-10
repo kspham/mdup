@@ -35,6 +35,8 @@ Optional arguments:
   -t INT                number of threads [default: 1]
   -o DIR                output directory [default: "./mdup_out/"]
   -g FILE               reference file that generated bam file (for better stats)
+  -n INT                minimum number of reads require for a molecule (default: 4)
+  -l INT                minimum length require for a molecule (default: 1000)
   -k                    don't mark duplicate.
 ```
 
